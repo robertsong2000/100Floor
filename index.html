@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>男人下一百层</title>
+    <link rel="preload" href="assets/player-sheet.png" as="image">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="game-wrap" aria-label="男人下一百层小游戏">
+        <div class="topbar">
+          <div>
+            <p class="eyebrow">100 Floor Drop</p>
+            <h1>男人下一百层</h1>
+          </div>
+          <div class="meters" aria-live="polite">
+            <div><span id="floorText">1</span><small>层</small></div>
+            <div><span id="scoreText">0</span><small>分</small></div>
+            <div><span id="bestText">0</span><small>最佳</small></div>
+          </div>
+        </div>
+
+        <div class="stage-frame">
+          <canvas id="gameCanvas" width="420" height="700"></canvas>
+          <div id="overlay" class="overlay is-visible">
+            <div class="badge">避开顶部尖刺，踩住平台往下冲</div>
+            <button id="startBtn" class="primary">开始游戏</button>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="leftBtn" class="pad" aria-label="向左移动">◀</button>
+          <button id="pauseBtn" class="utility">暂停</button>
+          <button id="restartBtn" class="utility">重开</button>
+          <button id="rightBtn" class="pad" aria-label="向右移动">▶</button>
+        </div>
+      </section>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>
