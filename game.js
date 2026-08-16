@@ -32,12 +32,14 @@ const state = {
   keys: { left: false, right: false },
   player: null,
   particles: [],
+  steer: { left: false, right: false },
   best: Number(localStorage.getItem("floorDropBest") || 0),
 };
 
 const playerSheet = new Image();
 playerSheet.src = "assets/player-sheet.png";
 const spriteFrames = [];
+let overlayTimer = 0;
 
 const audio = {
   ctx: null,
@@ -144,6 +146,7 @@ function resetGame(playSound = true) {
     unlockAudio();
     sfx.start();
   }
+  clearTimeout(overlayTimer);
   state.running = true;
   state.paused = false;
   state.ended = false;
@@ -155,6 +158,8 @@ function resetGame(playSound = true) {
   state.spawnY = H - 34;
   state.platforms = [];
   state.particles = [];
+  state.steer.left = false;
+  state.steer.right = false;
   state.player = {
     x: W / 2 - PLAYER_W / 2,
     y: 126,
@@ -163,6 +168,8 @@ function resetGame(playSound = true) {
     grounded: false,
     facing: 1,
     anim: 0,
+    landTimer: 0,
+    stunned: false,
   };
 
   for (let y = 150; y < H + 120; y += state.platformGap) {
@@ -174,7 +181,6 @@ function resetGame(playSound = true) {
 }
 
 function makePlatform(y, forcedX) {
-  const floorBand = Math.floor((H - y) / state.platformGap);
   const width = clamp(122 - state.floor * 0.45 + random(-18, 20), 62, 134);
   const types = state.floor > 36 ? ["normal", "normal", "spring", "crack"] : ["normal", "normal", "spring"];
   const type = types[Math.floor(Math.random() * types.length)];
@@ -185,8 +191,21 @@ function makePlatform(y, forcedX) {
     h: type === "spring" ? 13 : 11,
     type,
     used: false,
-    band: floorBand,
+    breaking: false,
+    breakTimer: 0,
+    shake: 0,
   };
+}
+
+function persistBest() {
+  state.best = Math.max(state.best, state.score);
+  localStorage.setItem("floorDropBest", String(state.best));
+  updateHud();
+}
+
+function revealOverlay(delay = 0) {
+  clearTimeout(overlayTimer);
+  overlayTimer = setTimeout(() => overlay.classList.add("is-visible"), delay);
 }
 
 function updateHud() {
@@ -199,23 +218,24 @@ function completeGame() {
   if (state.ended) return;
   state.running = false;
   state.ended = true;
+  if (state.player) state.player.stunned = false;
   sfx.win();
+  persistBest();
   startBtn.textContent = "再来一次";
   overlay.querySelector(".badge").textContent = "通关 100 层！这手感可以。";
-  overlay.classList.add("is-visible");
+  revealOverlay(280);
 }
 
 function gameOver(reason) {
   if (state.ended) return;
   state.running = false;
   state.ended = true;
+  if (state.player) state.player.stunned = true;
   sfx.gameOver();
+  persistBest();
   startBtn.textContent = "再来一次";
   overlay.querySelector(".badge").textContent = reason;
-  overlay.classList.add("is-visible");
-  state.best = Math.max(state.best, state.score);
-  localStorage.setItem("floorDropBest", String(state.best));
-  updateHud();
+  revealOverlay(520);
 }
 
 function update(dt) {
@@ -225,7 +245,9 @@ function update(dt) {
   const accel = 1800;
   const maxSpeed = 235;
   const friction = player.grounded ? 0.82 : 0.94;
-  const direction = (state.keys.right ? 1 : 0) - (state.keys.left ? 1 : 0);
+  const goRight = state.keys.right || state.steer.right;
+  const goLeft = state.keys.left || state.steer.left;
+  const direction = (goRight ? 1 : 0) - (goLeft ? 1 : 0);
 
   if (direction !== 0) {
     player.vx += direction * accel * dt;
@@ -248,9 +270,17 @@ function update(dt) {
   state.cameraSpeed = 78 + state.floor * 2.45;
   state.platformGap = clamp(96 - state.floor * 0.3, 64, 96);
   player.grounded = false;
+  player.landTimer = Math.max(0, player.landTimer - dt);
 
   for (const platform of state.platforms) {
     platform.y -= scroll;
+    if (platform.breaking) {
+      platform.breakTimer -= dt;
+      platform.shake = Math.sin(platform.breakTimer * 52) * 5;
+    }
+
+    if (platform.breaking) continue;
+
     const wasAbove = player.y + PLAYER_H - player.vy * dt <= platform.y + 5;
     const isFalling = player.vy >= 0;
     const overlapsX = player.x + PLAYER_W > platform.x && player.x < platform.x + platform.w;
@@ -260,14 +290,21 @@ function update(dt) {
       player.y = platform.y - PLAYER_H;
       player.vy = platform.type === "spring" ? -650 : -120;
       player.grounded = true;
+      player.landTimer = platform.type === "spring" ? 0.12 : 0.22;
       platform.used = true;
       sfx.land(platform.type);
       burst(player.x + PLAYER_W / 2, platform.y, platform.type === "spring" ? "#f0b43f" : "#f7ead2");
-      if (platform.type === "crack") platform.breaking = true;
+      if (platform.type === "crack") {
+        platform.breaking = true;
+        platform.breakTimer = 0.42;
+      }
     }
   }
 
-  state.platforms = state.platforms.filter((platform) => !platform.breaking && platform.y > -30);
+  state.platforms = state.platforms.filter((platform) => {
+    if (platform.breaking && platform.breakTimer <= 0) return false;
+    return platform.y > -30;
+  });
   while (state.spawnY < H + 80) {
     state.spawnY += state.platformGap;
     state.platforms.push(makePlatform(state.spawnY));
@@ -281,7 +318,6 @@ function update(dt) {
   }
 
   state.score += Math.max(1, Math.floor(scroll / 4));
-  state.best = Math.max(state.best, state.score);
 
   for (const p of state.particles) {
     p.x += p.vx * dt;
@@ -341,14 +377,19 @@ function drawSpikes() {
 
 function drawPlatform(platform) {
   const color = platform.type === "spring" ? "#f0b43f" : platform.type === "crack" ? "#d8452d" : "#f7ead2";
+  const shake = platform.shake || 0;
+  const fade = platform.breaking ? clamp(platform.breakTimer / 0.42, 0.35, 1) : 1;
+  ctx.save();
+  ctx.globalAlpha = fade;
   ctx.fillStyle = "#241b16";
-  ctx.fillRect(platform.x - 4, platform.y + 4, platform.w + 8, platform.h + 7);
+  ctx.fillRect(platform.x - 4 + shake, platform.y + 4, platform.w + 8, platform.h + 7);
   ctx.fillStyle = color;
-  ctx.fillRect(platform.x, platform.y, platform.w, platform.h);
+  ctx.fillRect(platform.x + shake, platform.y, platform.w, platform.h);
   ctx.fillStyle = platform.type === "spring" ? "#11766e" : "#315a95";
   for (let x = platform.x + 9; x < platform.x + platform.w - 8; x += 18) {
-    ctx.fillRect(x, platform.y + 3, 8, 3);
+    ctx.fillRect(x + shake, platform.y + 3, 8, 3);
   }
+  ctx.restore();
 }
 
 function prepareSpriteFrames() {
@@ -404,7 +445,9 @@ function drawPlayer() {
   const frameH = playerSheet.height / rows;
   let frame = 0;
 
-  if (!player.grounded && player.vy > 220) frame = 5;
+  if (player.stunned) frame = 7;
+  else if (player.landTimer > 0) frame = 6;
+  else if (!player.grounded && player.vy > 220) frame = 5;
   else if (Math.abs(player.vx) > 30) frame = 1 + Math.floor(player.anim / 6) % 4;
   else frame = 0;
 
@@ -480,11 +523,48 @@ function setButton(button, key) {
   button.addEventListener("pointerleave", up);
 }
 
-window.addEventListener("keydown", (event) => {
+function steerFromCanvas(event, active) {
+  if (!active) {
+    state.steer.left = false;
+    state.steer.right = false;
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const x = ((event.clientX - rect.left) / rect.width) * W;
+  state.steer.left = x < W / 2;
+  state.steer.right = x >= W / 2;
+}
+
+let canvasPointer = null;
+
+canvas.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
   unlockAudio();
-  if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") state.keys.left = true;
-  if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") state.keys.right = true;
-  if (event.key === " " || event.key.toLowerCase() === "p") togglePause();
+  canvasPointer = event.pointerId;
+  if (canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId);
+  steerFromCanvas(event, true);
+});
+canvas.addEventListener("pointermove", (event) => {
+  if (canvasPointer !== event.pointerId) return;
+  steerFromCanvas(event, true);
+});
+const endCanvasSteer = (event) => {
+  if (canvasPointer !== event.pointerId) return;
+  canvasPointer = null;
+  steerFromCanvas(event, false);
+};
+canvas.addEventListener("pointerup", endCanvasSteer);
+canvas.addEventListener("pointercancel", endCanvasSteer);
+
+window.addEventListener("keydown", (event) => {
+  const key = event.key.toLowerCase();
+  if ([" ", "arrowleft", "arrowright", "arrowup", "arrowdown"].includes(key) || key === "a" || key === "d" || key === "p") {
+    event.preventDefault();
+  }
+  unlockAudio();
+  if (event.key === "ArrowLeft" || key === "a") state.keys.left = true;
+  if (event.key === "ArrowRight" || key === "d") state.keys.right = true;
+  if (event.key === " " || key === "p") togglePause();
 });
 
 window.addEventListener("keyup", (event) => {

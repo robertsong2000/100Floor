@@ -107,13 +107,13 @@
           </article>
           <article>
             <p class="file-name">player-sheet.png</p>
-            <p>4×2 像素角色图。站立、走路、坠落、落地、晕眩都画了，代码目前只用前 6 帧。</p>
+            <p>4×2 像素角色图。站立、走路、坠落、落地、晕眩都已接到角色状态上。</p>
             <span>1536×1024 · 479 KB</span>
           </article>
-          <article class="muted">
-            <p class="file-name">player-sheet-raw.png</p>
-            <p>未压缩原图，运行时没有引用。属于可以删掉的重量级残留。</p>
-            <span>1.4 MB · 未使用</span>
+          <article>
+            <p class="file-name">README.md</p>
+            <p>怎么打开、怎么操作、文件职责。仓库不再是只有源码、没有说明的空壳。</p>
+            <span>说明文档</span>
           </article>
         </div>
       </section>
@@ -191,7 +191,7 @@
           <article class="plat crack">
             <div class="plat-bar"></div>
             <h3>碎裂台</h3>
-            <p>红色。36 层后出现，踩上立刻消失。</p>
+            <p>红色。36 层后出现，踩上会先晃再碎掉。</p>
           </article>
         </div>
       </section>
@@ -236,7 +236,7 @@
         </div>
         <div class="split">
           <div class="prose">
-            <p>画面全是手绘 Canvas：深蓝到橙色的竖向天空、横条装饰、顶部一排尖刺、带阴影的色块平台、落地粒子。角色按状态切帧——站立第 0 帧，走动 1–4 帧，快速下落第 5 帧。</p>
+            <p>画面全是手绘 Canvas：深蓝到橙色的竖向天空、横条装饰、顶部一排尖刺、带阴影的色块平台、落地粒子。角色按状态切帧——站立第 0 帧，走动 1–4 帧，快速下落第 5 帧，落地第 6 帧，失败晕眩第 7 帧。</p>
             <p>加载时会扫一遍像素 alpha，自动裁掉每帧黑边。图没到齐时用红矩形占位。声音全是 Web Audio：方波 / 三角波做音阶，噪声做碎裂和死亡。第一次按键才解锁音频，避开浏览器限制。</p>
           </div>
           <div class="sprite-board">
@@ -245,8 +245,8 @@
               <li>站立 · 使用中</li>
               <li>走 1–4 · 使用中</li>
               <li>坠落 · 使用中</li>
-              <li>落地蹲姿 · 未用</li>
-              <li>晕眩 · 未用</li>
+              <li>落地蹲姿 · 使用中</li>
+              <li>晕眩 · 使用中</li>
             </ol>
           </div>
         </div>
@@ -257,7 +257,7 @@
           <p class="index">07</p>
           <div>
             <p class="eyebrow">Review</p>
-            <h2>手感完整，工程配套还薄</h2>
+            <h2>手感完整，清单里的坑已经补上</h2>
           </div>
         </div>
         <div class="review-grid">
@@ -271,19 +271,19 @@
               <li>CSS 变量和 Canvas 用同一套配色，海报感完整。</li>
             </ul>
           </article>
-          <article class="bad">
-            <h3>明显问题</h3>
+          <article class="good">
+            <h3>已经补上的清单</h3>
             <ul>
-              <li>通关 <code>completeGame()</code> 不写 localStorage，刷新可能丢掉通关分。</li>
-              <li>落地蹲姿和晕眩两帧画了却没用上。</li>
-              <li>碎裂台没有「晃一下再掉」，踩上立刻被滤掉。</li>
-              <li>精灵图偏大；raw 图 1.4MB 完全没引用。</li>
-              <li>没有 README / 许可证；空格暂停可能带动页面滚动。</li>
+              <li>通关和失败都会写入 <code>localStorage</code>，对局中不再提前改最佳分。</li>
+              <li>落地蹲姿、失败晕眩两帧已经接到角色状态上。</li>
+              <li>碎裂台会先晃约 0.4 秒再消失，不会踩上立刻蒸发。</li>
+              <li>未引用的 raw 图已删除，并补了 README。</li>
+              <li>空格 / 方向键会 <code>preventDefault</code>，画布左半 / 右半可按住转向。</li>
             </ul>
           </article>
         </div>
         <blockquote>
-          总体判断：这是一个已经能玩的独立小游戏原型。架构就是「一个 HTML 页 + 一个游戏循环」，适合继续打磨手感和内容。下一步性价比最高的是：通关也存分、给碎裂台加短暂延迟、把落地 / 死亡帧用上、删掉未使用的 raw 图并补一份说明。
+          总体判断：这是一个已经能玩的独立小游戏原型。架构就是「一个 HTML 页 + 一个游戏循环」。分析里点名的六项问题已经落地：存分、精灵帧、碎裂延迟、无用资源、说明文档，以及空格滚页和画布操作。
         </blockquote>
       </section>
     </main>
