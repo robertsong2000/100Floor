@@ -242,6 +242,7 @@ h1 {
 
 .panel {
   padding: 72px 7vw;
+  scroll-margin-top: 86px;
 }
 
 .panel.dark {

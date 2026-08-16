@@ -15,21 +15,28 @@ const animateCount = (el) => {
   requestAnimationFrame(tick);
 };
 
+const startCount = (el) => {
+  if (el.dataset.counted === "1") return;
+  el.dataset.counted = "1";
+  el.textContent = "0";
+  animateCount(el);
+};
+
 if ("IntersectionObserver" in window) {
   const io = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
-          animateCount(entry.target);
+          startCount(entry.target);
           io.unobserve(entry.target);
         }
       }
     },
-    { threshold: 0.4 }
+    { threshold: 0.35 }
   );
   counters.forEach((el) => io.observe(el));
 } else {
-  counters.forEach(animateCount);
+  counters.forEach(startCount);
 }
 
 function drawCurve() {
