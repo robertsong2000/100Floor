@@ -65,6 +65,15 @@ button {
   text-transform: uppercase;
 }
 
+.doc-link {
+  color: var(--red);
+  text-decoration: none;
+}
+
+.doc-link:hover {
+  text-decoration: underline;
+}
+
 h1 {
   margin: 0;
   font-size: clamp(28px, 8vw, 44px);

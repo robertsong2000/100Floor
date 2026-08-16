@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>设计分析 · 男人下一百层</title>
+    <meta name="description" content="robertsong2000/100Floor 的工程与玩法分析：纯前端、无构建工具的一百层下落小游戏。">
+    <link rel="preload" href="assets/player-sheet.png" as="image">
+    <link rel="stylesheet" href="analysis.css">
+  </head>
+  <body>
+    <div class="spike-rail" aria-hidden="true"></div>
+
+    <header class="site-nav">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">100</span>
+        <span>Floor Drop</span>
+      </a>
+      <nav>
+        <a href="#overview">概述</a>
+        <a href="#architecture">结构</a>
+        <a href="#loop">循环</a>
+        <a href="#play">玩法</a>
+        <a href="#curve">难度</a>
+        <a href="#craft">视听</a>
+        <a href="#review">评价</a>
+      </nav>
+      <a class="play-link" href="index.html">进入游戏</a>
+    </header>
+
+    <main>
+      <section class="hero" id="top">
+        <div class="hero-sky"></div>
+        <div class="hero-copy">
+          <p class="eyebrow">Game Design Dossier · 2026</p>
+          <h1>男人下一百层</h1>
+          <p class="lede">一份给 <strong>robertsong2000/100Floor</strong> 的精读报告。这是一个零依赖的浏览器小游戏：角色不断往下掉，踩平台、躲尖刺，撑到第一百层通关。</p>
+          <div class="hero-actions">
+            <a class="btn gold" href="index.html">立刻开玩</a>
+            <a class="btn ghost" href="#overview">阅读分析</a>
+          </div>
+        </div>
+        <aside class="hero-card">
+          <img class="hero-sprite" src="assets/player-sheet.png" alt="角色精灵图裁切预览">
+          <dl>
+            <div><dt>类型</dt><dd>下落平台</dd></div>
+            <div><dt>技术</dt><dd>Canvas 2D</dd></div>
+            <div><dt>依赖</dt><dd>无</dd></div>
+            <div><dt>通关</dt><dd>100 层</dd></div>
+          </dl>
+        </aside>
+      </section>
+
+      <section class="stats" aria-label="关键数字">
+        <article><span data-count="5">0</span><small>源文件</small></article>
+        <article><span data-count="516">0</span><small>行游戏逻辑</small></article>
+        <article><span data-count="100">0</span><small>目标层数</small></article>
+        <article><span data-count="3">0</span><small>平台种类</small></article>
+        <article><span data-count="0">0</span><small>构建依赖</small></article>
+      </section>
+
+      <section class="panel" id="overview">
+        <div class="section-head">
+          <p class="index">01</p>
+          <div>
+            <p class="eyebrow">Overview</p>
+            <h2>这是一份能玩的独立原型</h2>
+          </div>
+        </div>
+        <div class="split">
+          <div class="prose">
+            <p>仓库只有一次 Initial commit，没有 README、没有打包器、没有框架。本地打开 <code>index.html</code> 就能玩。它不是业务系统，也不是引擎模板，而是一个手感已经齐的「男人下一百层」对标作。</p>
+            <p>镜头不跟着角色走，而是<strong>世界整体上移</strong>。角色被往屏幕上方推，你必须不断往下找台子。撞到顶部尖刺，或没踩住掉出画面，都会结束。</p>
+          </div>
+          <ul class="pill-list">
+            <li>纯 HTML / CSS / Canvas / Web Audio</li>
+            <li>桌面键盘 + 手机按键</li>
+            <li>最佳分写入 localStorage</li>
+            <li>到 100 层播放通关音阶</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="panel" id="architecture">
+        <div class="section-head">
+          <p class="index">02</p>
+          <div>
+            <p class="eyebrow">Architecture</p>
+            <h2>五份文件，职责清楚</h2>
+          </div>
+        </div>
+        <div class="file-grid">
+          <article>
+            <p class="file-name">index.html</p>
+            <p>页面壳：标题栏、Canvas、开始 / 暂停 / 左右按钮。中文界面，竖版 420×700。</p>
+            <span>1.6 KB</span>
+          </article>
+          <article>
+            <p class="file-name">game.js</p>
+            <p>全部游戏逻辑：物理、生成、碰撞、绘制、音效、输入。一个 <code>state</code> 对象贯穿全局。</p>
+            <span>15 KB · 516 行</span>
+          </article>
+          <article>
+            <p class="file-name">styles.css</p>
+            <p>复古海报风 UI。粗描边、硬阴影、纸色底与金色主按钮，和画布配色同一套变量。</p>
+            <span>3.6 KB</span>
+          </article>
+          <article>
+            <p class="file-name">player-sheet.png</p>
+            <p>4×2 像素角色图。站立、走路、坠落、落地、晕眩都画了，代码目前只用前 6 帧。</p>
+            <span>1536×1024 · 479 KB</span>
+          </article>
+          <article class="muted">
+            <p class="file-name">player-sheet-raw.png</p>
+            <p>未压缩原图，运行时没有引用。属于可以删掉的重量级残留。</p>
+            <span>1.4 MB · 未使用</span>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel dark" id="loop">
+        <div class="section-head">
+          <p class="index">03</p>
+          <div>
+            <p class="eyebrow">Game Loop</p>
+            <h2>标准的一帧：更新，再画</h2>
+          </div>
+        </div>
+        <ol class="flow">
+          <li>
+            <strong>requestAnimationFrame</strong>
+            <span>用性能时钟算 dt，并钳在 32ms，避免切回标签页时一帧跳太远。</span>
+          </li>
+          <li>
+            <strong>update(dt)</strong>
+            <span>读按键、积分速度、施加重力、检测单向平台、滚动镜头、生成新台、结算层数。</span>
+          </li>
+          <li>
+            <strong>render()</strong>
+            <span>天空渐变 → 平台 → 粒子 → 角色 → 顶部尖刺。暂停时盖一层半透明「暂停」。</span>
+          </li>
+        </ol>
+        <pre class="code-card"><code>function loop(now) {
+  const dt = Math.min(0.032, (now - state.lastTime) / 1000 || 0);
+  state.lastTime = now;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}</code></pre>
+        <p class="note">页面加载会先静默铺好世界，再立刻暂停并显示遮罩。点「开始」时平台已经在，不会空场。</p>
+      </section>
+
+      <section class="panel" id="play">
+        <div class="section-head">
+          <p class="index">04</p>
+          <div>
+            <p class="eyebrow">Systems</p>
+            <h2>玩法不是数台阶，是算下落距离</h2>
+          </div>
+        </div>
+        <div class="card-grid">
+          <article>
+            <h3>分数与层数</h3>
+            <p>每帧 <code>score += max(1, floor(scroll / 4))</code>。层数是 <code>floor(score / 10) + 1</code>，钳在 1 到 100。每 10 层播一次里程碑音效。</p>
+          </article>
+          <article>
+            <h3>手感参数</h3>
+            <p>重力 1450，水平加速 1800，最大速度 235。地面摩擦 0.82，空中 0.94。普通台回弹 -120，弹簧台 -650。</p>
+          </article>
+          <article>
+            <h3>单向平台</h3>
+            <p>只有下落、且上一帧脚还在台子上方时才落地。可以从台下穿过去。左右会穿屏：走出左边从右边出现。</p>
+          </article>
+          <article>
+            <h3>失败与通关</h3>
+            <p>撞尖刺：「撞到顶部尖刺了！」。掉出底部：「没踩稳，掉下去了！」。到 100 层显示「通关 100 层！这手感可以。」</p>
+          </article>
+        </div>
+
+        <div class="platform-row">
+          <article class="plat normal">
+            <div class="plat-bar"></div>
+            <h3>普通台</h3>
+            <p>米色。小弹一下，是基本落点。</p>
+          </article>
+          <article class="plat spring">
+            <div class="plat-bar"></div>
+            <h3>弹簧台</h3>
+            <p>金色。向上弹得更高，用来抢节奏。</p>
+          </article>
+          <article class="plat crack">
+            <div class="plat-bar"></div>
+            <h3>碎裂台</h3>
+            <p>红色。36 层后出现，踩上立刻消失。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="curve">
+        <div class="section-head">
+          <p class="index">05</p>
+          <div>
+            <p class="eyebrow">Difficulty</p>
+            <h2>四条参数一起加压</h2>
+          </div>
+        </div>
+        <p class="prose intro">难度不是只加快滚动。镜头速度、平台间距、台宽、碎裂台会同时收紧，所以中后期会明显更挤。</p>
+        <div class="chart-wrap">
+          <canvas id="curveChart" width="920" height="360"></canvas>
+          <div class="chart-legend">
+            <span class="lg gold">镜头速度</span>
+            <span class="lg teal">平台间距</span>
+            <span class="lg paper">估算台宽</span>
+          </div>
+        </div>
+        <table class="spec">
+          <thead>
+            <tr><th>参数</th><th>公式 / 规则</th><th>效果</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>镜头速度</td><td><code>78 + 层数 × 2.45</code></td><td>越来越快地把你往上推</td></tr>
+            <tr><td>平台间距</td><td>约 96 收到最低 64</td><td>台与台更密，反应窗口更短</td></tr>
+            <tr><td>平台宽度</td><td>随层数变窄，约 62–134</td><td>落点更刁</td></tr>
+            <tr><td>平台种类</td><td>36 层后加入碎裂台</td><td>不能把每块台都当安全区</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="panel dark" id="craft">
+        <div class="section-head">
+          <p class="index">06</p>
+          <div>
+            <p class="eyebrow">Audiovisual</p>
+            <h2>没有素材包，声音是合成的</h2>
+          </div>
+        </div>
+        <div class="split">
+          <div class="prose">
+            <p>画面全是手绘 Canvas：深蓝到橙色的竖向天空、横条装饰、顶部一排尖刺、带阴影的色块平台、落地粒子。角色按状态切帧——站立第 0 帧，走动 1–4 帧，快速下落第 5 帧。</p>
+            <p>加载时会扫一遍像素 alpha，自动裁掉每帧黑边。图没到齐时用红矩形占位。声音全是 Web Audio：方波 / 三角波做音阶，噪声做碎裂和死亡。第一次按键才解锁音频，避开浏览器限制。</p>
+          </div>
+          <div class="sprite-board">
+            <p>精灵图 8 帧</p>
+            <ol>
+              <li>站立 · 使用中</li>
+              <li>走 1–4 · 使用中</li>
+              <li>坠落 · 使用中</li>
+              <li>落地蹲姿 · 未用</li>
+              <li>晕眩 · 未用</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="review">
+        <div class="section-head">
+          <p class="index">07</p>
+          <div>
+            <p class="eyebrow">Review</p>
+            <h2>手感完整，工程配套还薄</h2>
+          </div>
+        </div>
+        <div class="review-grid">
+          <article class="good">
+            <h3>做得好的地方</h3>
+            <ul>
+              <li>零依赖、单文件逻辑，<code>state / update / render / sfx</code> 分开，适合改玩法。</li>
+              <li>重力、摩擦、弹簧、穿屏、单向平台都有，不是半成品。</li>
+              <li>速度、间距、宽度、碎裂台一起加压，难度有节奏。</li>
+              <li>键盘和触屏都覆盖，暂停、重开、最佳分齐全。</li>
+              <li>CSS 变量和 Canvas 用同一套配色，海报感完整。</li>
+            </ul>
+          </article>
+          <article class="bad">
+            <h3>明显问题</h3>
+            <ul>
+              <li>通关 <code>completeGame()</code> 不写 localStorage，刷新可能丢掉通关分。</li>
+              <li>落地蹲姿和晕眩两帧画了却没用上。</li>
+              <li>碎裂台没有「晃一下再掉」，踩上立刻被滤掉。</li>
+              <li>精灵图偏大；raw 图 1.4MB 完全没引用。</li>
+              <li>没有 README / 许可证；空格暂停可能带动页面滚动。</li>
+            </ul>
+          </article>
+        </div>
+        <blockquote>
+          总体判断：这是一个已经能玩的独立小游戏原型。架构就是「一个 HTML 页 + 一个游戏循环」，适合继续打磨手感和内容。下一步性价比最高的是：通关也存分、给碎裂台加短暂延迟、把落地 / 死亡帧用上、删掉未使用的 raw 图并补一份说明。
+        </blockquote>
+      </section>
+    </main>
+
+    <footer>
+      <div>
+        <p class="eyebrow">100 Floor Drop</p>
+        <strong>男人下一百层 · 设计分析</strong>
+      </div>
+      <a class="btn gold" href="index.html">回到游戏</a>
+    </footer>
+
+    <script src="analysis.js"></script>
+  </body>
+</html>
